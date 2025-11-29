@@ -12,6 +12,7 @@ dependencies = [
     "livekit-agents[silero,turn-detector]~=1.3",
     "livekit-plugins-noise-cancellation~=0.2",
     "python-dotenv",
+    "certifi>=2024.0.0",
 ]
 
 [dependency-groups]
@@ -20,12 +21,6 @@ dev = [
     "pytest-asyncio",
     "ruff",
 ]
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-dir]
-"" = "src"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -42,3 +37,8 @@ ignore = ["E501"]  # Line too long (handled by formatter)
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.uv.workspace]
+members = [
+    "interview-ai",
+]
