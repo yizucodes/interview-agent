@@ -1,19 +1,27 @@
+import logging
 from dotenv import load_dotenv
 from livekit import agents, rtc
 from livekit.agents import AgentServer,AgentSession, Agent, room_io
 from livekit.plugins import noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from tools import search_project_docs, generate_feedback
+from prompts import INTERVIEWER_SYSTEM_PROMPT, INTERVIEWER_GREETING
 
 load_dotenv(".env.local")
+
+# Configure logging to show INFO level and above
+# This ensures tool call logs are visible
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions=INTERVIEWER_SYSTEM_PROMPT,
+            tools=[search_project_docs, generate_feedback],
         )
 
 server = AgentServer()
@@ -39,11 +47,20 @@ async def my_agent(ctx: agents.JobContext):
     )
 
     await session.generate_reply(
-        instructions="Greet the user and offer your assistance."
+        instructions=INTERVIEWER_GREETING
     )
 
 
 if __name__ == "__main__":
+    import os
+    livekit_url = os.getenv("LIVEKIT_URL", "Not configured")
+    print("\n" + "="*60)
+    print("Agent Server Starting...")
+    print("="*60)
+    print(f"LiveKit URL: {livekit_url}")
+    print("Token Server: http://localhost:8000/token?room=<room>&username=<user>")
+    print("Connect at: https://meet.livekit.io")
+    print("="*60 + "\n")
     agents.cli.run_app(server)
 
     
