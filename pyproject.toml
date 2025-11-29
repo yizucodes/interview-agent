@@ -13,6 +13,12 @@ dependencies = [
     "livekit-plugins-noise-cancellation~=0.2",
     "python-dotenv",
     "certifi>=2024.0.0",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.20",
+    "langchain-openai>=0.0.5",
+    "langchain-chroma>=0.1.0",
+    "chromadb>=0.4.22",
+    "pypdf>=3.17.0",
 ]
 
 [dependency-groups]

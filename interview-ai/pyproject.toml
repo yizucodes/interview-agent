@@ -10,4 +10,9 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.32.0",
     "livekit>=0.17.0",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.20",
+    "langchain-openai>=0.0.5",
+    "chromadb>=0.4.22",
+    "pypdf>=3.17.0",
 ]
