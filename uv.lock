@@ -11,7 +11,7 @@ resolution-markers = [
 [manifest]
 members = [
     "agent-starter-python",
-    "interview-ai",
+    "backend",
 ]
 
 [[package]]
@@ -403,6 +403,44 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/7f/1d801bff43ae1af4758c45eee2eaae64f303bbb460e79f352f08587fd179/av-16.0.1-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:e3243d54d84986e8fbdc1946db634b0c41fe69b6de35a99fa8b763e18503d040", size = 41175142, upload-time = "2025-10-13T12:28:38.356Z" },
     { url = "https://files.pythonhosted.org/packages/e4/06/bb363138687066bbf8997c1433dbd9c81762bae120955ea431fb72d69d26/av-16.0.1-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:a1bcf73efab5379601e6510abd7afe5f397d0f6defe69b1610c2f37a4a17996b", size = 42293932, upload-time = "2025-10-13T12:28:43.442Z" },
     { url = "https://files.pythonhosted.org/packages/92/15/5e713098a085f970ccf88550194d277d244464d7b3a7365ad92acb4b6dc1/av-16.0.1-cp314-cp314t-win_amd64.whl", hash = "sha256:6368d4ff153d75469d2a3217bc403630dc870a72fe0a014d9135de550d731a86", size = 32460624, upload-time = "2025-10-13T12:28:48.767Z" },
+]
+
+[[package]]
+name = "backend"
+version = "0.1.0"
+source = { virtual = "backend" }
+dependencies = [
+    { name = "certifi" },
+    { name = "chromadb" },
+    { name = "fastapi" },
+    { name = "langchain", version = "0.3.27", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "langchain", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "langchain-community", version = "0.3.31", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "langchain-community", version = "0.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "langchain-openai", version = "0.3.35", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "langchain-openai", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "livekit" },
+    { name = "livekit-agents", extra = ["silero", "turn-detector"] },
+    { name = "livekit-plugins-noise-cancellation" },
+    { name = "pypdf" },
+    { name = "python-dotenv" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "certifi", specifier = ">=2024.0.0" },
+    { name = "chromadb", specifier = ">=0.4.22" },
+    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "langchain", specifier = ">=0.1.0" },
+    { name = "langchain-community", specifier = ">=0.0.20" },
+    { name = "langchain-openai", specifier = ">=0.0.5" },
+    { name = "livekit", specifier = ">=0.17.0" },
+    { name = "livekit-agents", extras = ["silero", "turn-detector"], specifier = "~=1.2" },
+    { name = "livekit-plugins-noise-cancellation", specifier = "~=0.2" },
+    { name = "pypdf", specifier = ">=3.17.0" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "uvicorn", specifier = ">=0.32.0" },
 ]
 
 [[package]]
@@ -1466,44 +1504,6 @@ resolution-markers = [
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "interview-ai"
-version = "0.1.0"
-source = { virtual = "interview-ai" }
-dependencies = [
-    { name = "certifi" },
-    { name = "chromadb" },
-    { name = "fastapi" },
-    { name = "langchain", version = "0.3.27", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "langchain", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "langchain-community", version = "0.3.31", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "langchain-community", version = "0.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "langchain-openai", version = "0.3.35", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "langchain-openai", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "livekit" },
-    { name = "livekit-agents", extra = ["silero", "turn-detector"] },
-    { name = "livekit-plugins-noise-cancellation" },
-    { name = "pypdf" },
-    { name = "python-dotenv" },
-    { name = "uvicorn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "certifi", specifier = ">=2024.0.0" },
-    { name = "chromadb", specifier = ">=0.4.22" },
-    { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "langchain", specifier = ">=0.1.0" },
-    { name = "langchain-community", specifier = ">=0.0.20" },
-    { name = "langchain-openai", specifier = ">=0.0.5" },
-    { name = "livekit", specifier = ">=0.17.0" },
-    { name = "livekit-agents", extras = ["silero", "turn-detector"], specifier = "~=1.2" },
-    { name = "livekit-plugins-noise-cancellation", specifier = "~=0.2" },
-    { name = "pypdf", specifier = ">=3.17.0" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "uvicorn", specifier = ">=0.32.0" },
 ]
 
 [[package]]

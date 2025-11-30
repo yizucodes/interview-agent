@@ -46,5 +46,5 @@ indent-style = "space"
 
 [tool.uv.workspace]
 members = [
-    "interview-ai",
+    "backend",
 ]
