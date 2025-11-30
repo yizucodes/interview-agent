@@ -220,14 +220,6 @@ function Transcript() {
 
   return (
     <div className="transcript-content">
-      <div className="transcript-header">
-        <div>
-          <h2 className="transcript-title">Live Transcript</h2>
-          <p className="transcript-subtitle">
-            Follow the conversation between you and the interviewer in real time.
-          </p>
-        </div>
-      </div>
       <div className="transcript-scroll" ref={containerRef}>
         {segments.length === 0 ? (
           <div className="transcript-empty">
