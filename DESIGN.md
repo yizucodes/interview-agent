@@ -189,7 +189,7 @@ class Assistant(Agent):
 5. Function result injected back into LLM context
 6. LLM generates natural language response using tool output
 
-**Tool Execution Flow:**
+**Tool Execution Flow Example 1: Documentation Search**
 ```
 User: "What does this project do?"
     ↓
@@ -204,10 +204,66 @@ LLM generates answer: "This project is a voice-based interviewer..."
 TTS speaks response
 ```
 
+**Tool Execution Flow Example 2: Feedback Generation**
+```
+Interview concludes → User asks for feedback
+    ↓
+LLM analyzes conversation history → Identifies strengths and areas for improvement
+    ↓
+LLM calls generate_feedback(
+    strengths="Clear explanation of system architecture...",
+    areas_for_improvement="Could elaborate more on error handling...",
+    rating=8
+)
+    ↓
+Tool formats feedback as structured summary
+    ↓
+Formatted feedback returned to LLM
+    ↓
+LLM delivers feedback naturally: "Great job! You scored 8/10. Your strengths were..."
+    ↓
+TTS speaks feedback
+```
+
+**Available Tools:**
+
+1. **`search_project_docs(query: str) -> str`**
+   - **Purpose:** Retrieve relevant information from project documentation via RAG
+   - **When triggered:** LLM needs project-specific context to ask informed questions
+   - **Parameters:**
+     - `query`: Search query string (e.g., "authentication implementation", "API endpoints")
+   - **Returns:** Retrieved document chunks or error message
+   - **Behavior:** Searches ChromaDB with k=4, deduplicates results, formats as context
+   - **Latency impact:** +1-2 seconds per call
+
+2. **`generate_feedback(strengths: str, areas_for_improvement: str, rating: int) -> str`**
+   - **Purpose:** Generate structured end-of-interview feedback summary
+   - **When triggered:** Interview concludes or user explicitly requests feedback
+   - **Parameters:**
+     - `strengths`: Positive aspects of interview (what candidate did well)
+     - `areas_for_improvement`: Constructive criticism (where to improve)
+     - `rating`: Numeric score 1-10 (automatically clamped if out of range)
+   - **Returns:** Formatted feedback summary with rating, strengths, areas for improvement
+   - **Behavior:** Validates rating bounds, formats as readable summary, logs rating
+   - **Example output:**
+     ```
+     Interview Feedback Summary
+     ==========================
+     RATING: 8/10
+     
+     STRENGTHS:
+     Clear explanation of system architecture...
+     
+     AREAS FOR IMPROVEMENT:
+     Could elaborate more on error handling...
+     ```
+
 **Key Behaviors:**
-- Tools are **synchronous** (blocking) - RAG search runs in main thread
+- Tools are **async** (non-blocking) but RAG search uses blocking I/O
 - No retry logic (fails open - LLM responds without tool data if error)
-- Tool results logged at INFO level for debugging
+- Tool calls logged at INFO level for debugging
+- Multiple tools can be called in sequence (e.g., search docs → ask question → generate feedback)
+- Tool schemas auto-generated from Python type hints + docstrings
 
 ### Agent State Management
 
