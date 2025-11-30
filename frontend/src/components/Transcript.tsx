@@ -15,51 +15,20 @@ export function Transcript() {
   useEffect(() => {
     const newSegments = new Map(displayedSegments)
     
-    // Debug: Log agent info
-    if (agent) {
-      console.log('🔵 Agent info:', {
-        identity: agent.identity,
-        sid: agent.sid,
-        name: agent.name
-      })
-    } else {
-      console.log('⚠️ No agent found yet')
-    }
-    
-    console.log(`📝 Processing ${allTranscriptions.length} transcription(s)...`)
-    
-    allTranscriptions.forEach((transcription: any, index: number) => {
+    allTranscriptions.forEach((transcription: any) => {
       // Get segment ID from stream info attributes
       const segmentId = transcription.streamInfo?.attributes?.['lk.segment_id']
       const isFinal = transcription.streamInfo?.attributes?.['lk.transcription_final'] === 'true'
       const transcribedTrackId = transcription.streamInfo?.attributes?.['lk.transcribed_track_id']
       const participantIdentity = transcription.participantInfo?.identity
       
-      console.log(`📄 Transcription [${index}]:`, {
-        text: transcription.text?.substring(0, 50) + (transcription.text?.length > 50 ? '...' : ''),
-        participantIdentity: participantIdentity,
-        agentIdentity: agent?.identity,
-        isAgentMatch: participantIdentity === agent?.identity,
-        segmentId: segmentId,
-        isFinal: isFinal,
-        transcribedTrackId: transcribedTrackId,
-        hasTranscribedTrackId: !!transcribedTrackId,
-        allAttributes: transcription.streamInfo?.attributes
-      })
-      
       // Only process transcriptions (not regular chat messages)
       if (!transcribedTrackId) {
-        console.log(`⏭️ Skipping transcription [${index}]: No transcribed_track_id (likely chat message)`)
         return
       }
       
       // Require segmentId and text
       if (!segmentId || !transcription.text?.trim()) {
-        console.log(`⏳ Skipping transcription [${index}]:`, {
-          reason: !segmentId ? 'No segment ID' : 'No text',
-          hasSegmentId: !!segmentId,
-          hasText: !!transcription.text?.trim()
-        })
         return
       }
       
@@ -67,20 +36,8 @@ export function Transcript() {
       const existingSegment = newSegments.get(segmentId)
       if (existingSegment?.isFinal && !isFinal) {
         // Already have final version, don't overwrite with interim
-        console.log(`⏭️ Keeping final transcription for segment ${segmentId} (ignoring interim update)`)
         return
       }
-      
-      // Add or update segment (interim or final)
-      const isAgent = participantIdentity === agent?.identity
-      console.log(`${isFinal ? '✅ Final' : '🔄 Interim'} transcription [${index}]:`, {
-        segmentId: segmentId,
-        text: transcription.text,
-        speaker: isAgent ? 'Interviewer' : 'You',
-        participantIdentity: participantIdentity,
-        agentIdentity: agent?.identity,
-        isFinal: isFinal
-      })
       
       // Preserve original timestamp if updating existing segment to maintain sort order
       newSegments.set(segmentId, {
@@ -120,7 +77,6 @@ export function Transcript() {
     }
     
     if (hasChanges) {
-      console.log(`📊 Segments updated: ${displayedSegments.size} → ${newSegments.size}`)
       setDisplayedSegments(newSegments)
     }
   }, [allTranscriptions, agent])
@@ -140,16 +96,6 @@ export function Transcript() {
         if (!segment.isFinal) {
           const age = now - segment.timestamp
           if (age > INTERIM_TIMEOUT_MS) {
-            const isUser = segment.participantIdentity !== agent?.identity
-            console.log(
-              `⏰ Timeout: Auto-finalizing ${isUser ? 'user' : 'agent'} interim transcription`,
-              {
-                segmentId,
-                age: `${age}ms`,
-                text: segment.text.substring(0, 50) + (segment.text.length > 50 ? '...' : '')
-              }
-            )
-            
             // Preserve original timestamp to maintain sort order
             updated.set(segmentId, {
               ...segment,
@@ -171,36 +117,8 @@ export function Transcript() {
     return () => clearInterval(interval)
   }, [displayedSegments, agent?.identity])
 
-  // Debug logging - summary
-  useEffect(() => {
-    if (allTranscriptions.length > 0) {
-      console.log('📊 Transcription Summary:', {
-        totalTranscriptions: allTranscriptions.length,
-        displayedSegments: displayedSegments.size,
-        agentIdentity: agent?.identity,
-        latestTranscription: allTranscriptions[allTranscriptions.length - 1]
-      })
-    }
-  }, [allTranscriptions.length, displayedSegments.size, agent?.identity])
-
   // Convert map to array and sort by timestamp
   const segments = Array.from(displayedSegments.values()).sort((a, b) => a.timestamp - b.timestamp)
-
-  // Debug: Log segments being displayed
-  useEffect(() => {
-    if (segments.length > 0) {
-      console.log(`🎯 Displaying ${segments.length} segment(s):`)
-      segments.forEach((segment, index) => {
-        const isAgent = segment.participantIdentity === agent?.identity
-        console.log(`  [${index}] ${isAgent ? 'Interviewer' : 'You'}:`, {
-          text: segment.text.substring(0, 50) + (segment.text.length > 50 ? '...' : ''),
-          participantIdentity: segment.participantIdentity,
-          agentIdentity: agent?.identity,
-          isAgent: isAgent
-        })
-      })
-    }
-  }, [segments.length, agent?.identity])
 
   // Auto-scroll to the latest segment
   useEffect(() => {

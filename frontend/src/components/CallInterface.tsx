@@ -27,11 +27,9 @@ export function CallInterface({ onEndInterview }: CallInterfaceProps) {
 
   // Handle explicit disconnect when user ends interview
   const handleEndInterview = async () => {
-    console.log('Ending interview - disconnecting from room')
     try {
       // Explicitly disconnect from the room
       await room.disconnect()
-      console.log('Successfully disconnected from room')
     } catch (error) {
       console.error('Error disconnecting from room:', error)
     } finally {
@@ -43,14 +41,12 @@ export function CallInterface({ onEndInterview }: CallInterfaceProps) {
   // Handle browser close/navigation - cleanup before page unload
   useEffect(() => {
     const handleBeforeUnload = async () => {
-      console.log('Page unloading - disconnecting from room')
       try {
-        // Attempt to disconnect the room
         if (room && connectionState === ConnectionState.Connected) {
           await room.disconnect()
         }
       } catch (error) {
-        console.error('Error disconnecting during page unload:', error)
+        // Silent cleanup during page unload
       }
     }
 
@@ -60,15 +56,10 @@ export function CallInterface({ onEndInterview }: CallInterfaceProps) {
     }
   }, [room, connectionState])
 
-  // Monitor connection state changes and handle disconnections
+  // Monitor connection state changes
   useEffect(() => {
-    if (connectionState === ConnectionState.Disconnected) {
-      console.log('Room disconnected - cleaning up')
-      // The room is disconnected, so we can clean up
-      // The onDisconnected handler in the parent will handle UI reset
-    } else if (connectionState === ConnectionState.Reconnecting) {
-      console.log('Connection lost - attempting to reconnect')
-    }
+    // Connection state is monitored for UI updates
+    // The onDisconnected handler in parent handles cleanup
   }, [connectionState])
 
   // Find the agent participant
@@ -93,23 +84,6 @@ export function CallInterface({ onEndInterview }: CallInterfaceProps) {
     }
   )
 
-  // Debug logging for agent detection
-  useEffect(() => {
-    if (remoteParticipants.length > 0) {
-      console.log('Remote participants:', remoteParticipants.map(p => ({
-        identity: p.identity,
-        name: p.name,
-        isAgent: p.isAgent,
-        metadata: p.metadata,
-        kind: (p as any).kind
-      })))
-      if (agentParticipant) {
-        console.log('✅ Agent participant found:', agentParticipant.identity)
-      } else {
-        console.warn('⚠️ No agent participant detected. Participants:', remoteParticipants.length)
-      }
-    }
-  }, [remoteParticipants, agentParticipant])
 
   // Get your local video track
   const localVideoTrack = allTracks.find(
@@ -130,14 +104,12 @@ export function CallInterface({ onEndInterview }: CallInterfaceProps) {
     // Enable microphone and camera when connected
     if (connectionState === ConnectionState.Connected && room) {
       room.localParticipant.setMicrophoneEnabled(true).then(() => {
-        console.log('Microphone enabled')
         setIsLocalMicEnabled(true)
       }).catch((error) => {
         console.error('Failed to enable microphone:', error)
       })
       
       room.localParticipant.setCameraEnabled(true).then(() => {
-        console.log('Camera enabled')
         setIsLocalCameraEnabled(true)
       }).catch((error) => {
         console.error('Failed to enable camera:', error)

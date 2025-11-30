@@ -64,3 +64,4 @@ export function AudioVisualizer({ track, state, barCount = 5 }: AudioVisualizerP
   )
 }
 
+

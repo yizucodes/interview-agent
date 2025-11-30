@@ -16,7 +16,6 @@ function App() {
   const startInterview = async () => {
     // Prevent multiple simultaneous connection attempts
     if (isStartingRef.current || isConnecting || connectionDetails) {
-      console.log('Connection already in progress or active')
       return
     }
 
@@ -26,12 +25,10 @@ function App() {
 
     try {
       // Check capacity before starting
-      console.log('Checking server capacity...')
       let capacityResponse
       try {
         capacityResponse = await fetch(`${TOKEN_SERVER_URL}/capacity-check`)
       } catch (fetchError) {
-        console.error('❌ Failed to connect to token server:', fetchError)
         throw new Error(
           `Cannot connect to token server at ${TOKEN_SERVER_URL}. ` +
           `Make sure the token server is running on port 8000.`
@@ -51,10 +48,6 @@ function App() {
         )
       }
 
-      console.log(
-        `Capacity available: ${capacityData.active_sessions}/${capacityData.max_sessions} sessions active`
-      )
-
       // Generate a unique room name for this interview
       const roomName = `interview-${Date.now()}`
       const username = 'candidate'
@@ -64,7 +57,6 @@ function App() {
       try {
         urlResponse = await fetch(`${TOKEN_SERVER_URL}/livekit-url`)
       } catch (fetchError) {
-        console.error('❌ Failed to fetch LiveKit URL:', fetchError)
         throw new Error('Cannot connect to token server to get LiveKit URL')
       }
       
@@ -77,8 +69,6 @@ function App() {
       if (urlData.error) {
         throw new Error(urlData.error)
       }
-      
-      console.log('✅ LiveKit URL obtained:', urlData.url)
 
       // Fetch access token (this will also check capacity server-side)
       const tokenResponse = await fetch(
@@ -103,8 +93,6 @@ function App() {
         roomName: roomName,
       })
       
-      console.log(`Starting interview in room: ${roomName}`)
-      
       // Note: isConnecting stays true until connection is established
       // It will be reset in endInterview or if there's an error
     } catch (err) {
@@ -116,7 +104,6 @@ function App() {
   }
 
   const endInterview = () => {
-    console.log('Ending interview - resetting connection state')
     setConnectionDetails(null)
     setIsConnecting(false)
     isStartingRef.current = false
