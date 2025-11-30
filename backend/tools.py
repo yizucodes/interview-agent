@@ -33,22 +33,17 @@ async def search_project_docs(
         Relevant excerpts from the project documentation
     """
     try:
-        logger.info(f"🔍 Tool called: search_project_docs")
-        logger.info(f"   Query: {query}")
+        logger.info(f"Searching project docs: {query}")
         
         context = query_rag(query, k=4, deduplicate=True)
         
         if not context or len(context.strip()) == 0:
-            logger.info(f"   Result: No relevant information found")
             return f"No relevant information found for query: {query}"
         
-        # Format the result nicely
-        result = f"Project Documentation Context:\n\n{context}"
-        logger.info(f"   Result: Retrieved {len(context)} characters of context")
-        return result
+        return f"Project Documentation Context:\n\n{context}"
     
     except Exception as e:
-        logger.error(f"   ❌ Error: {str(e)}")
+        logger.error(f"Error searching documentation: {str(e)}")
         return f"Error searching documentation: {str(e)}"
 
 
@@ -82,15 +77,11 @@ async def generate_feedback(
         Formatted feedback summary
     """
     try:
-        # Use stderr to ensure output appears (LiveKit may redirect stdout)
-        print(f"\n📝 Tool called: generate_feedback", file=sys.stderr, flush=True)
-        print(f"   Rating: {rating}/10", file=sys.stderr, flush=True)
-        print(f"   Strengths: {strengths[:60]}{'...' if len(strengths) > 60 else ''}", file=sys.stderr, flush=True)
-        print(f"   Improvements: {areas_for_improvement[:60]}{'...' if len(areas_for_improvement) > 60 else ''}", file=sys.stderr, flush=True)
+        logger.info(f"Generating feedback: rating={rating}/10")
         
         # Validate rating
         if not (1 <= rating <= 10):
-            rating = max(1, min(10, rating))  # Clamp to valid range
+            rating = max(1, min(10, rating))
         
         feedback = f"""
 Interview Feedback Summary
@@ -106,10 +97,9 @@ AREAS FOR IMPROVEMENT:
 
 Thank you for participating in this technical interview!
 """
-        print(f"   ✅ Feedback generated successfully", file=sys.stderr, flush=True)
         return feedback.strip()
     
     except Exception as e:
-        print(f"   ❌ Error: {str(e)}", file=sys.stderr, flush=True)
+        logger.error(f"Error generating feedback: {str(e)}")
         return f"Error generating feedback: {str(e)}"
 
