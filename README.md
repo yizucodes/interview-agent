@@ -172,7 +172,6 @@ interview-agent/
 │   │   └── index.css            # Global styles
 │   └── package.json
 ├── DESIGN.md              # Architecture and design decisions
-├── CHECKPOINTS.md         # Development checkpoints and verification
 └── README.md              # This file
 ```
 
