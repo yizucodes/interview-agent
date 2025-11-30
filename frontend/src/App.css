@@ -237,6 +237,13 @@
   color: rgba(148, 163, 184, 0.9);
 }
 
+.transcript-debug {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
 .transcript-item {
   padding: 0.65rem 0.8rem;
   border-radius: 0.75rem;
@@ -266,6 +273,30 @@
 
 .transcript-text {
   color: rgba(226, 232, 240, 0.95);
+}
+
+/* Interim transcription styling */
+.transcript-item.interim {
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.transcript-interim-indicator {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  animation: pulse-indicator 1.5s ease-in-out infinite;
+  font-style: normal;
+}
+
+@keyframes pulse-indicator {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Semi-transparent backdrop for mobile when transcript is open */

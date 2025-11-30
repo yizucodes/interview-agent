@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { LiveKitRoom, RoomAudioRenderer, useConnectionState, useRoomContext, useRemoteParticipants, useTracks, useVoiceAssistant } from '@livekit/components-react'
+import { LiveKitRoom, RoomAudioRenderer, useConnectionState, useRoomContext, useRemoteParticipants, useTracks, useVoiceAssistant, useTranscriptions } from '@livekit/components-react'
 import { ConnectionState, Track, Participant } from 'livekit-client'
 import type { VideoTrack } from 'livekit-client'
 import { AudioVisualizer } from './AudioVisualizer'
@@ -10,20 +10,213 @@ const TOKEN_SERVER_URL = 'http://localhost:8000'
 
 type AgentState = 'initializing' | 'listening' | 'thinking' | 'speaking'
 
-// Transcript component using LiveKit's voice assistant hook
+// Transcript component using LiveKit's transcription hooks
 function Transcript() {
-  // Cast to any so we can access the `segments` helper used in this project plan.
-  // The underlying data comes from LiveKit's transcription streams.
-  const voiceAssistant = useVoiceAssistant() as any
-  const segments = (voiceAssistant?.segments ?? []) as any[]
+  // Get all transcriptions from the room (both user and agent)
+  const allTranscriptions = useTranscriptions()
+  const { agent } = useVoiceAssistant()
   const containerRef = useRef<HTMLDivElement>(null)
+  
+  // Track unique segments to avoid duplicates (interim vs final)
+  const [displayedSegments, setDisplayedSegments] = useState<Map<string, any>>(new Map())
+
+  // Process transcriptions - show interim immediately, replace with final when available
+  useEffect(() => {
+    const newSegments = new Map(displayedSegments)
+    
+    // Debug: Log agent info
+    if (agent) {
+      console.log('🔵 Agent info:', {
+        identity: agent.identity,
+        sid: agent.sid,
+        name: agent.name
+      })
+    } else {
+      console.log('⚠️ No agent found yet')
+    }
+    
+    console.log(`📝 Processing ${allTranscriptions.length} transcription(s)...`)
+    
+    allTranscriptions.forEach((transcription: any, index: number) => {
+      // Get segment ID from stream info attributes
+      const segmentId = transcription.streamInfo?.attributes?.['lk.segment_id']
+      const isFinal = transcription.streamInfo?.attributes?.['lk.transcription_final'] === 'true'
+      const transcribedTrackId = transcription.streamInfo?.attributes?.['lk.transcribed_track_id']
+      const participantIdentity = transcription.participantInfo?.identity
+      
+      console.log(`📄 Transcription [${index}]:`, {
+        text: transcription.text?.substring(0, 50) + (transcription.text?.length > 50 ? '...' : ''),
+        participantIdentity: participantIdentity,
+        agentIdentity: agent?.identity,
+        isAgentMatch: participantIdentity === agent?.identity,
+        segmentId: segmentId,
+        isFinal: isFinal,
+        transcribedTrackId: transcribedTrackId,
+        hasTranscribedTrackId: !!transcribedTrackId,
+        allAttributes: transcription.streamInfo?.attributes
+      })
+      
+      // Only process transcriptions (not regular chat messages)
+      if (!transcribedTrackId) {
+        console.log(`⏭️ Skipping transcription [${index}]: No transcribed_track_id (likely chat message)`)
+        return
+      }
+      
+      // Require segmentId and text
+      if (!segmentId || !transcription.text?.trim()) {
+        console.log(`⏳ Skipping transcription [${index}]:`, {
+          reason: !segmentId ? 'No segment ID' : 'No text',
+          hasSegmentId: !!segmentId,
+          hasText: !!transcription.text?.trim()
+        })
+        return
+      }
+      
+      // Check if we already have a final version of this segment
+      const existingSegment = newSegments.get(segmentId)
+      if (existingSegment?.isFinal && !isFinal) {
+        // Already have final version, don't overwrite with interim
+        console.log(`⏭️ Keeping final transcription for segment ${segmentId} (ignoring interim update)`)
+        return
+      }
+      
+      // Add or update segment (interim or final)
+      const isAgent = participantIdentity === agent?.identity
+      console.log(`${isFinal ? '✅ Final' : '🔄 Interim'} transcription [${index}]:`, {
+        segmentId: segmentId,
+        text: transcription.text,
+        speaker: isAgent ? 'Interviewer' : 'You',
+        participantIdentity: participantIdentity,
+        agentIdentity: agent?.identity,
+        isFinal: isFinal
+      })
+      
+      // Preserve original timestamp if updating existing segment to maintain sort order
+      newSegments.set(segmentId, {
+        id: segmentId,
+        text: transcription.text,
+        participantIdentity: participantIdentity,
+        isFinal: isFinal,
+        timestamp: existingSegment?.timestamp ?? Date.now(), // Preserve original timestamp
+      })
+    })
+    
+    // Check if segments have changed (size OR content)
+    let hasChanges = false
+    
+    if (newSegments.size !== displayedSegments.size) {
+      hasChanges = true
+    } else {
+      // Check if any existing segments have changed (interim → final, text updates)
+      for (const [segmentId, newSegment] of newSegments.entries()) {
+        const oldSegment = displayedSegments.get(segmentId)
+        if (!oldSegment) {
+          // New segment (shouldn't happen if sizes match, but safety check)
+          hasChanges = true
+          break
+        }
+        // Check if isFinal status changed (interim → final)
+        if (oldSegment.isFinal !== newSegment.isFinal) {
+          hasChanges = true
+          break
+        }
+        // Check if text changed (interim updates or final replacement)
+        if (oldSegment.text !== newSegment.text) {
+          hasChanges = true
+          break
+        }
+      }
+    }
+    
+    if (hasChanges) {
+      console.log(`📊 Segments updated: ${displayedSegments.size} → ${newSegments.size}`)
+      setDisplayedSegments(newSegments)
+    }
+  }, [allTranscriptions, agent])
+
+  // Timeout fallback: Auto-finalize interim transcriptions after timeout
+  // This handles edge cases where final transcriptions never arrive
+  // Preserves original timestamp to maintain sort order
+  useEffect(() => {
+    const INTERIM_TIMEOUT_MS = 3000 // 3 seconds - if interim is older than this, treat as final
+    
+    const checkInterimTimeouts = () => {
+      const now = Date.now()
+      const updated = new Map(displayedSegments)
+      let hasChanges = false
+      
+      displayedSegments.forEach((segment, segmentId) => {
+        if (!segment.isFinal) {
+          const age = now - segment.timestamp
+          if (age > INTERIM_TIMEOUT_MS) {
+            const isUser = segment.participantIdentity !== agent?.identity
+            console.log(
+              `⏰ Timeout: Auto-finalizing ${isUser ? 'user' : 'agent'} interim transcription`,
+              {
+                segmentId,
+                age: `${age}ms`,
+                text: segment.text.substring(0, 50) + (segment.text.length > 50 ? '...' : '')
+              }
+            )
+            
+            // Preserve original timestamp to maintain sort order
+            updated.set(segmentId, {
+              ...segment,
+              isFinal: true,
+            })
+            hasChanges = true
+          }
+        }
+      })
+      
+      if (hasChanges) {
+        setDisplayedSegments(updated)
+      }
+    }
+    
+    // Check every 500ms for timeouts
+    const interval = setInterval(checkInterimTimeouts, 500)
+    
+    return () => clearInterval(interval)
+  }, [displayedSegments, agent?.identity])
+
+  // Debug logging - summary
+  useEffect(() => {
+    if (allTranscriptions.length > 0) {
+      console.log('📊 Transcription Summary:', {
+        totalTranscriptions: allTranscriptions.length,
+        displayedSegments: displayedSegments.size,
+        agentIdentity: agent?.identity,
+        latestTranscription: allTranscriptions[allTranscriptions.length - 1]
+      })
+    }
+  }, [allTranscriptions.length, displayedSegments.size, agent?.identity])
+
+  // Convert map to array and sort by timestamp
+  const segments = Array.from(displayedSegments.values()).sort((a, b) => a.timestamp - b.timestamp)
+
+  // Debug: Log segments being displayed
+  useEffect(() => {
+    if (segments.length > 0) {
+      console.log(`🎯 Displaying ${segments.length} segment(s):`)
+      segments.forEach((segment, index) => {
+        const isAgent = segment.participantIdentity === agent?.identity
+        console.log(`  [${index}] ${isAgent ? 'Interviewer' : 'You'}:`, {
+          text: segment.text.substring(0, 50) + (segment.text.length > 50 ? '...' : ''),
+          participantIdentity: segment.participantIdentity,
+          agentIdentity: agent?.identity,
+          isAgent: isAgent
+        })
+      })
+    }
+  }, [segments.length, agent?.identity])
 
   // Auto-scroll to the latest segment
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight
     }
-  }, [segments?.length])
+  }, [displayedSegments.size])
 
   return (
     <div className="transcript-content">
@@ -36,26 +229,31 @@ function Transcript() {
         </div>
       </div>
       <div className="transcript-scroll" ref={containerRef}>
-        {!segments || segments.length === 0 ? (
+        {segments.length === 0 ? (
           <div className="transcript-empty">
             <p>Transcript will appear here once the conversation starts.</p>
+            <p className="transcript-debug">
+              {allTranscriptions.length > 0 
+                ? `Processing ${allTranscriptions.length} transcription stream(s)...` 
+                : 'Waiting for audio...'}
+            </p>
           </div>
         ) : (
-          segments.map((segment: any, index: number) => {
-            const isAgent = Boolean(segment?.isAgent)
+          segments.map((segment) => {
+            // Check if this transcription is from the agent
+            const isAgent = segment.participantIdentity === agent?.identity
             const speakerLabel = isAgent ? 'Interviewer' : 'You'
-            const key = segment?.id ?? index
-
-            if (!segment?.text) {
-              return null
-            }
+            const isInterim = !segment.isFinal
 
             return (
               <div
-                key={key}
-                className={`transcript-item ${isAgent ? 'agent' : 'user'}`}
+                key={segment.id}
+                className={`transcript-item ${isAgent ? 'agent' : 'user'} ${isInterim ? 'interim' : ''}`}
               >
-                <div className="transcript-speaker">{speakerLabel}</div>
+                <div className="transcript-speaker">
+                  {speakerLabel}
+                  {isInterim && <span className="transcript-interim-indicator">...</span>}
+                </div>
                 <div className="transcript-text">{segment.text}</div>
               </div>
             )
@@ -115,10 +313,91 @@ function CallInterface({ onEndInterview }: { onEndInterview: () => void }) {
   const [isLocalCameraEnabled, setIsLocalCameraEnabled] = useState(false)
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false)
 
+  // Handle explicit disconnect when user ends interview
+  const handleEndInterview = async () => {
+    console.log('Ending interview - disconnecting from room')
+    try {
+      // Explicitly disconnect from the room
+      await room.disconnect()
+      console.log('Successfully disconnected from room')
+    } catch (error) {
+      console.error('Error disconnecting from room:', error)
+    } finally {
+      // Call parent handler to reset UI state
+      onEndInterview()
+    }
+  }
+
+  // Handle browser close/navigation - cleanup before page unload
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      console.log('Page unloading - disconnecting from room')
+      try {
+        // Attempt to disconnect the room
+        if (room && connectionState === ConnectionState.Connected) {
+          await room.disconnect()
+        }
+      } catch (error) {
+        console.error('Error disconnecting during page unload:', error)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [room, connectionState])
+
+  // Monitor connection state changes and handle disconnections
+  useEffect(() => {
+    if (connectionState === ConnectionState.Disconnected) {
+      console.log('Room disconnected - cleaning up')
+      // The room is disconnected, so we can clean up
+      // The onDisconnected handler in the parent will handle UI reset
+    } else if (connectionState === ConnectionState.Reconnecting) {
+      console.log('Connection lost - attempting to reconnect')
+    }
+  }, [connectionState])
+
   // Find the agent participant
+  // Try multiple methods to detect the agent
   const agentParticipant = remoteParticipants.find(
-    (p: Participant) => p.isAgent || p.metadata?.includes('agent')
+    (p: Participant) => {
+      // Method 1: Check isAgent property
+      if (p.isAgent) return true
+      
+      // Method 2: Check metadata
+      if (p.metadata?.includes('agent')) return true
+      
+      // Method 3: Check participant kind (if available)
+      if ((p as any).kind === 'agent' || (p as any).kind === 'AGENT') return true
+      
+      // Method 4: Check identity/name patterns
+      const identity = p.identity?.toLowerCase() || ''
+      const name = p.name?.toLowerCase() || ''
+      if (identity.includes('agent') || name.includes('agent')) return true
+      
+      return false
+    }
   )
+
+  // Debug logging for agent detection
+  useEffect(() => {
+    if (remoteParticipants.length > 0) {
+      console.log('Remote participants:', remoteParticipants.map(p => ({
+        identity: p.identity,
+        name: p.name,
+        isAgent: p.isAgent,
+        metadata: p.metadata,
+        kind: (p as any).kind
+      })))
+      if (agentParticipant) {
+        console.log('✅ Agent participant found:', agentParticipant.identity)
+      } else {
+        console.warn('⚠️ No agent participant detected. Participants:', remoteParticipants.length)
+      }
+    }
+  }, [remoteParticipants, agentParticipant])
 
   // Get your local video track
   const localVideoTrack = allTracks.find(
@@ -195,7 +474,7 @@ function CallInterface({ onEndInterview }: { onEndInterview: () => void }) {
           >
             Transcript
           </button>
-          <button className="end-button" onClick={onEndInterview}>
+          <button className="end-button" onClick={handleEndInterview}>
             End Interview
           </button>
         </div>
@@ -291,28 +570,85 @@ function App() {
   } | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isStartingRef = useRef(false) // Prevent multiple simultaneous starts
 
   const startInterview = async () => {
+    // Prevent multiple simultaneous connection attempts
+    if (isStartingRef.current || isConnecting || connectionDetails) {
+      console.log('Connection already in progress or active')
+      return
+    }
+
+    isStartingRef.current = true
     setIsConnecting(true)
     setError(null)
 
     try {
+      // Check capacity before starting
+      console.log('Checking server capacity...')
+      let capacityResponse
+      try {
+        capacityResponse = await fetch(`${TOKEN_SERVER_URL}/capacity-check`)
+      } catch (fetchError) {
+        console.error('❌ Failed to connect to token server:', fetchError)
+        throw new Error(
+          `Cannot connect to token server at ${TOKEN_SERVER_URL}. ` +
+          `Make sure the token server is running on port 8000.`
+        )
+      }
+      
+      if (!capacityResponse.ok) {
+        throw new Error(`Token server returned error: ${capacityResponse.status} ${capacityResponse.statusText}`)
+      }
+      
+      const capacityData = await capacityResponse.json()
+
+      if (!capacityData.has_capacity) {
+        throw new Error(
+          capacityData.message || 
+          'Maximum number of interviews reached. Please try again later.'
+        )
+      }
+
+      console.log(
+        `Capacity available: ${capacityData.active_sessions}/${capacityData.max_sessions} sessions active`
+      )
+
       // Generate a unique room name for this interview
       const roomName = `interview-${Date.now()}`
       const username = 'candidate'
 
       // Fetch LiveKit URL
-      const urlResponse = await fetch(`${TOKEN_SERVER_URL}/livekit-url`)
+      let urlResponse
+      try {
+        urlResponse = await fetch(`${TOKEN_SERVER_URL}/livekit-url`)
+      } catch (fetchError) {
+        console.error('❌ Failed to fetch LiveKit URL:', fetchError)
+        throw new Error('Cannot connect to token server to get LiveKit URL')
+      }
+      
+      if (!urlResponse.ok) {
+        throw new Error(`Failed to get LiveKit URL: ${urlResponse.status}`)
+      }
+      
       const urlData = await urlResponse.json()
 
       if (urlData.error) {
         throw new Error(urlData.error)
       }
+      
+      console.log('✅ LiveKit URL obtained:', urlData.url)
 
-      // Fetch access token
+      // Fetch access token (this will also check capacity server-side)
       const tokenResponse = await fetch(
         `${TOKEN_SERVER_URL}/token?room=${roomName}&username=${username}`
       )
+      
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json()
+        throw new Error(errorData.detail || 'Failed to get access token')
+      }
+
       const tokenData = await tokenResponse.json()
 
       if (tokenData.error) {
@@ -325,16 +661,24 @@ function App() {
         token: tokenData.token,
         roomName: roomName,
       })
+      
+      console.log(`Starting interview in room: ${roomName}`)
+      
+      // Note: isConnecting stays true until connection is established
+      // It will be reset in endInterview or if there's an error
     } catch (err) {
       console.error('Failed to start interview:', err)
       setError(err instanceof Error ? err.message : 'Failed to connect')
       setIsConnecting(false)
+      isStartingRef.current = false
     }
   }
 
   const endInterview = () => {
+    console.log('Ending interview - resetting connection state')
     setConnectionDetails(null)
     setIsConnecting(false)
+    isStartingRef.current = false
     setError(null)
   }
 
