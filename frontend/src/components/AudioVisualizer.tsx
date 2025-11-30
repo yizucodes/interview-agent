@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Track } from 'livekit-client'
-import './AudioVisualizer.css'
 
 interface AudioVisualizerProps {
   track?: Track
@@ -9,8 +8,7 @@ interface AudioVisualizerProps {
 }
 
 export function AudioVisualizer({ track, state, barCount = 5 }: AudioVisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
   const [volumes, setVolumes] = useState<number[]>(Array(barCount).fill(0))
 
   useEffect(() => {
