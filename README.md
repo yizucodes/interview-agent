@@ -21,10 +21,8 @@ An AI-powered technical interviewer that conducts voice-based interviews about y
 - **Node.js 18+** and npm
 - **LiveKit Cloud Account** ([sign up free](https://cloud.livekit.io))
 - **API Keys:**
-  - OpenAI API key (for LLM and embeddings)
-  - AssemblyAI API key (for STT)
-  - Cartesia API key (for TTS)
-  - LiveKit credentials (URL, API key, API secret)
+  - OpenAI API key (for LLM and embeddings) - [Get your API key](https://platform.openai.com/api-keys)
+  - LiveKit credentials (URL, API key, API secret) - [Sign up free](https://cloud.livekit.io)
 
 ### Installation
 
@@ -68,8 +66,9 @@ uv run ingest.py
 
 **Expected output:**
 ```
-Split 1 documents into 15 chunks
+Split 1 documents into 147 chunks
 Stored 15 chunks in Chroma at data/chroma_db
+
 ```
 
 ---
@@ -88,9 +87,6 @@ uv run token_server.py
 **Expected output:**
 ```
 Token Server Started!
-============================================================
-Get tokens at: http://localhost:8000/token?room=<room>&username=<user>
-============================================================
 ```
 
 ### Terminal 2: AI Agent
