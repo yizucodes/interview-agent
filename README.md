@@ -2,6 +2,17 @@
 
 An AI-powered technical interviewer that conducts voice-based interviews about your project. Built with LiveKit for real-time voice communication and RAG (Retrieval Augmented Generation) for context-aware questioning.
 
+## 📹 Video Walkthrough
+
+**Full technical walkthrough:** [Watch on YouTube](https://www.youtube.com/watch?v=WAVZ7pkXPE8)
+
+The video covers:
+- Token generation with capacity management
+- Function calling for on-demand RAG
+- RAG setup with ChromaDB
+- Trade-offs discussion
+- Live demo showing the voice interview in action
+
 ## Features
 
 - 🎤 **Real-time Voice Interview:** Natural conversation with AI interviewer using LiveKit's voice pipeline
