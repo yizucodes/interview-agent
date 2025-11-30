@@ -185,10 +185,6 @@ function CallInterface({ onEndInterview }: { onEndInterview: () => void }) {
             </div>
           )}
         </div>
-
-        <div className="instructions">
-          <p>Speak naturally about your project. The AI interviewer is listening and will ask follow-up questions.</p>
-        </div>
       </div>
     </div>
   )

@@ -13,6 +13,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  /* Prevent mobile browser address bar from affecting layout */
+  height: -webkit-fill-available;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -24,10 +42,17 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh;
+  width: 100%;
+  height: 100%;
+  /* Prevent horizontal scrolling on mobile */
+  overflow-x: hidden;
+  /* Use safe area insets for notched devices */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 h1 {
