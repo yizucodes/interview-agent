@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { LiveKitRoom, RoomAudioRenderer, useConnectionState, useRoomContext, useRemoteParticipants, useTracks } from '@livekit/components-react'
+import { LiveKitRoom, RoomAudioRenderer, useConnectionState, useRoomContext, useRemoteParticipants, useTracks, useVoiceAssistant } from '@livekit/components-react'
 import { ConnectionState, Track, Participant } from 'livekit-client'
 import type { VideoTrack } from 'livekit-client'
 import { AudioVisualizer } from './AudioVisualizer'
@@ -9,6 +9,62 @@ import './App.css'
 const TOKEN_SERVER_URL = 'http://localhost:8000'
 
 type AgentState = 'initializing' | 'listening' | 'thinking' | 'speaking'
+
+// Transcript component using LiveKit's voice assistant hook
+function Transcript() {
+  // Cast to any so we can access the `segments` helper used in this project plan.
+  // The underlying data comes from LiveKit's transcription streams.
+  const voiceAssistant = useVoiceAssistant() as any
+  const segments = (voiceAssistant?.segments ?? []) as any[]
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to the latest segment
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight
+    }
+  }, [segments?.length])
+
+  return (
+    <div className="transcript-content">
+      <div className="transcript-header">
+        <div>
+          <h2 className="transcript-title">Live Transcript</h2>
+          <p className="transcript-subtitle">
+            Follow the conversation between you and the interviewer in real time.
+          </p>
+        </div>
+      </div>
+      <div className="transcript-scroll" ref={containerRef}>
+        {!segments || segments.length === 0 ? (
+          <div className="transcript-empty">
+            <p>Transcript will appear here once the conversation starts.</p>
+          </div>
+        ) : (
+          segments.map((segment: any, index: number) => {
+            const isAgent = Boolean(segment?.isAgent)
+            const speakerLabel = isAgent ? 'Interviewer' : 'You'
+            const key = segment?.id ?? index
+
+            if (!segment?.text) {
+              return null
+            }
+
+            return (
+              <div
+                key={key}
+                className={`transcript-item ${isAgent ? 'agent' : 'user'}`}
+              >
+                <div className="transcript-speaker">{speakerLabel}</div>
+                <div className="transcript-text">{segment.text}</div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
 
 // Video renderer component
 function VideoRenderer({ track, label, isLocal = false }: { track: VideoTrack | undefined, label: string, isLocal?: boolean }) {
@@ -57,6 +113,7 @@ function CallInterface({ onEndInterview }: { onEndInterview: () => void }) {
   const [agentState, setAgentState] = useState<AgentState>('initializing')
   const [isLocalMicEnabled, setIsLocalMicEnabled] = useState(false)
   const [isLocalCameraEnabled, setIsLocalCameraEnabled] = useState(false)
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false)
 
   // Find the agent participant
   const agentParticipant = remoteParticipants.find(
@@ -117,7 +174,7 @@ function CallInterface({ onEndInterview }: { onEndInterview: () => void }) {
   }, [agentParticipant])
 
   return (
-    <div className="call-interface">
+    <div className={`call-interface ${isTranscriptOpen ? 'with-transcript' : ''}`}>
       <div className="header-bar">
         <div className="call-header">
           <div className="header-content">
@@ -130,10 +187,46 @@ function CallInterface({ onEndInterview }: { onEndInterview: () => void }) {
             </div>
           </div>
         </div>
-        <button className="end-button" onClick={onEndInterview}>
-          End Interview
-        </button>
+        <div className="header-actions">
+          <button
+            type="button"
+            className={`transcript-toggle ${isTranscriptOpen ? 'active' : ''}`}
+            onClick={() => setIsTranscriptOpen((open) => !open)}
+          >
+            Transcript
+          </button>
+          <button className="end-button" onClick={onEndInterview}>
+            End Interview
+          </button>
+        </div>
       </div>
+
+      {/* Mobile overlay backdrop when transcript is open */}
+      <div
+        className="transcript-backdrop"
+        aria-hidden={!isTranscriptOpen}
+        onClick={() => setIsTranscriptOpen(false)}
+      />
+
+      {/* Slide-in transcript panel */}
+      <aside
+        className={`transcript-panel ${isTranscriptOpen ? 'open' : ''}`}
+        aria-label="Live transcript"
+      >
+        <div className="transcript-panel-inner">
+          <div className="transcript-panel-header">
+            <h2 className="transcript-title">Live Transcript</h2>
+            <button
+              type="button"
+              className="transcript-close"
+              onClick={() => setIsTranscriptOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+          <Transcript />
+        </div>
+      </aside>
 
       <div className="call-body">
         {/* Video Section - Split Screen Layout */}
