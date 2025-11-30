@@ -377,6 +377,13 @@ AgentSession(
 
 ## Development
 
+### Development Tools
+
+This project was built using **AI-assisted development**:
+- **IDE:** [Cursor](https://cursor.com) - AI-powered code editor
+- **AI Model:** Claude Sonnet 4.5 for code generation, architecture design, and iterative development
+- **Workflow:** Iterative development with AI pair programming for rapid prototyping and refinement
+
 ### Code Quality
 
 ```bash
