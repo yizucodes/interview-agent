@@ -149,29 +149,7 @@ async def get_token(room: str, username: str):
 if __name__ == "__main__":
     import uvicorn
     
-    # Print a sample token on startup for convenience
-    api_key = os.getenv("LIVEKIT_API_KEY")
-    api_secret = os.getenv("LIVEKIT_API_SECRET")
-    if api_key and api_secret:
-        sample_token = (
-            api.AccessToken(api_key, api_secret)
-            .with_identity("dev-user")
-            .with_name("dev-user")
-            .with_grants(
-                api.VideoGrants(
-                    room_join=True,
-                    room="dev-room",
-                )
-            )
-        )
-        print("\n" + "="*60)
-        print("Token Server Started!")
-        print("="*60)
-        print(f"Sample token for room 'dev-room', username 'dev-user':")
-        print(f"{sample_token.to_jwt()}")
-        print("="*60)
-        print("Get tokens at: http://localhost:8000/token?room=<room>&username=<user>")
-        print("="*60 + "\n")
+    print("Token Server Started!\n")
     
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
