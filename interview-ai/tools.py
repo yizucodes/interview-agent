@@ -3,6 +3,7 @@ Tools for the interview agent.
 Provides RAG search and feedback generation capabilities.
 """
 
+import sys
 import logging
 from typing import Annotated
 from livekit.agents import function_tool
