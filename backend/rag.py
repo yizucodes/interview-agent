@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 
 # Paths
 DATA_DIR = Path(__file__).parent / "data"
-PDF_PATH = DATA_DIR / "project_doc.pdf"
+PDF_PATH = DATA_DIR / "project_doc_long.pdf"
 CHROMA_DB_PATH = DATA_DIR / "chroma_db"
 
 
